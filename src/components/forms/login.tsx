@@ -7,6 +7,7 @@ import { SubmitHandler, useForm } from 'react-hook-form'
 import { z } from 'zod';
 import { signInWithEmail } from '../../../lib/actions/signIn'
 import { useNavigation } from '@react-navigation/native'
+import { Loader } from 'lucide-react-native'
 
 export default function SignInForm() {
   const [loading, setLoading] = useState(false)
@@ -28,12 +29,13 @@ export default function SignInForm() {
       setLoading(true)
       
       const res = await signInWithEmail(data)
+      console.log("The response after signing is ",res)
       if (res.error) {
         // Handle login error
         setError(
           res.error.message || 'Sign in failed. Please check your credentials and try again.'
         );
-      } else if (res.data && res.data.session) {
+      } else if (res.data && res.error === null) {
         // Success case - navigate to home screen
         navigation.navigate('Home'); 
       }
@@ -114,7 +116,7 @@ export default function SignInForm() {
           className='flex flex-row justify-center items-center gap-2 bg-[#50A65C] p-4 rounded-lg my-4'
         >
           <Text className='text-lg text-white font-semibold'>
-            {isPending ? 'Loading...' : 'Sign In To Folio'}
+            {loading ? <Loader color="white" className='animate-spin '/> : 'Sign In To Folio'}
           </Text>
         </TouchableOpacity>
       </View>

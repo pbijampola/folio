@@ -4,6 +4,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { z } from 'zod';
 import { ExpenseSchema } from '../../../types/expense/schema';
 import { zodResolver } from '@hookform/resolvers/zod';
+import CategoryPicker from '../widgets/picker';
 
 const ExpenseForm = () => {
     type expenseFormType = z.infer<typeof ExpenseSchema>;
@@ -88,13 +89,18 @@ const ExpenseForm = () => {
                         field: { onChange, onBlur, value },
                         fieldState: { error },
                     })=>(
-                        <TextInput
+                        // <TextInput
+                        //     placeholder="Expense Category"
+                        //     onBlur={onBlur}
+                        //     onChangeText={onChange}
+                        //     value={value}
+                        //     // activeOutlineColor={error ? "red" : "black"}
+                        //     className='my-2 rounded-md border-2 border-gray-400 p-4'
+                        // />
+                        <CategoryPicker
                             placeholder="Expense Category"
-                            onBlur={onBlur}
-                            onChangeText={onChange}
                             value={value}
-                            // activeOutlineColor={error ? "red" : "black"}
-                            className='my-2 rounded-md border-2 border-gray-400 p-4'
+                            onChange={onChange}
                         />
                     )}
                     name="category"
