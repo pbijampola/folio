@@ -21,13 +21,29 @@ export const signInWithEmail = async (
      })
     //  console.log("The user signed in is ",data)
     if(!error) {
-      const res = await supabase.auth.getUser()
-      console.log("The user signed in is ",res)
+      // const res = await supabase.auth.getUser()
+      // console.log("The user signed in is ",res)
+
+      const user = data.user
+      // console.log("The user signed in is ",user.id)
+      const { data: userData, error: userDataError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      
+        // console.log("The user signed in is ",userData)
+      if (userDataError) {
+        return {
+          error: userDataError
+        }
+      }
+      return {
+        data: userData,
+        error: error
+      }
     }
-     return {
-       data: data,
-       error: error
-     }
+     
    } catch (error) {
     console.log(error)
      return {
