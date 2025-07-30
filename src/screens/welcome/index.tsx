@@ -102,12 +102,12 @@ const Welcome = () => {
     return (
         <SafeAreaView className='flex-1 bg-secondary'>
             <View className='flex-1 items-center justify-center gap-8'>
-                <Animated.View style={imageAnimatedStyle}>
+                {/* <Animated.View style={imageAnimatedStyle}>
                     <Image 
                         source={require('/../../../Users/apple/GitHub/native/Expo/folio/assets/TechLife.png')} 
                         className='w-50 h-50 rounded-md'
                     />
-                </Animated.View>
+                </Animated.View> */}
                 
                 <Animated.Text 
                     className='text-5xl font-[700px] text-tertiary italic' 
