@@ -2,7 +2,8 @@ import { View, Text } from 'react-native'
 import React from 'react'
 import { FontAwesome } from '@expo/vector-icons'
 
-const BalanceCard = () => {
+const BalanceCard = ({totalExpenses}: {totalExpenses: number}) => {
+
   return (
     <View className="bg-[#50A65C] flex flex-col  width-[374px] h-[201px] rounded-[20px] mt-4 shadow-lg">
         <View className="flex flex-col justify-center items-center mt-10">
@@ -18,7 +19,7 @@ const BalanceCard = () => {
           </View>
           <View className="flex flex-col items-center gap-1">
             <Text className="text-sm text-primary font-normal">Expenses</Text>
-            <Text className="text-[13px] text-primary font-semibold ">192,000</Text>
+            <Text className="text-[13px] text-primary font-semibold ">{Intl.NumberFormat().format(totalExpenses)}</Text>
           </View>
         </View>
       </View>

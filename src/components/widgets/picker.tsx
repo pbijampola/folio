@@ -1,6 +1,5 @@
-import { View, Text } from 'react-native'
+import { View, Text, TouchableOpacity, FlatList } from 'react-native'
 import React, { useEffect, useState } from 'react'
-import { Picker } from '@react-native-picker/picker';
 import { Category } from '../../../types/categories/type';
 import { fetchCategories } from '../../../lib/actions/categories';
 
@@ -11,18 +10,18 @@ interface CategoryPickerProps {
    value?: string
    onChange?: (value: string) => void 
 }
-const CategoryPicker: React.FC<CategoryPickerProps> = ({placeholder,isRequiered,value,onChange}) => {
+
+const CategoryPicker: React.FC<CategoryPickerProps> = ({placeholder, isRequiered, value, onChange}) => {
     const [category, setCategory] = useState<Category[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
-    const [value, setValue] = useState<string | null>(null);
     const [isFocused, setIsFocused] = useState<boolean>(false);
+
     useEffect(() => {
         const loadCategories = async () => {
             try {
                 setLoading(true);
                 const categories = await fetchCategories();
-            setCategory(categories);
-            
+                setCategory(categories);
             } catch (error) {
                 console.error('Error fetching categories:', error);
             } finally {
@@ -32,27 +31,46 @@ const CategoryPicker: React.FC<CategoryPickerProps> = ({placeholder,isRequiered,
         loadCategories();
     }, []);
 
-    const renderLabel = () => {
-       if(value || isFocused){
-         return <Text>Dropdown label</Text>
-       }
-       return null;
-      };
-   
+    const handleCategoryPress = (categoryId: string) => {
+        if (onChange) {
+            onChange(categoryId);
+        }
+    };
 
-  return (
-    <View>
-      <Picker
-        selectedValue={category}
-        onValueChange={(itemValue, itemIndex) => setCategory(itemValue)}
-      >
-        <Picker.Item label={placeholder} value="" />
-        {category.map((item) => (
-          <Picker.Item key={item.id} label={item.name} value={item.id} />
-        ))}
-      </Picker>
-    </View>
-  )
+  
+    const isSelected = (categoryId: string) => {
+        return value === categoryId;
+    };
+
+    return (
+        <View className='flex flex-row my-2 gap-3'>
+            <FlatList
+                data={category}
+                numColumns={3}
+                keyExtractor={(item) => item.id}
+                columnWrapperStyle={{ gap: 12 }} 
+                contentContainerStyle={{ gap: 12 }} 
+                renderItem={({ item }) => (
+                    <TouchableOpacity 
+                        className={`flex-1 p-2 rounded-md border ${
+                            isSelected(item.id) 
+                                ? 'bg-green-500 border-green-500' 
+                                : 'border-gray-300'
+                        }`}
+                        onPress={() => handleCategoryPress(item.id)}
+                    >
+                        <Text className={`text-center ${
+                            isSelected(item.id) 
+                                ? 'text-white' 
+                                : 'text-black'
+                        }`}>
+                            {item.name}
+                        </Text>
+                    </TouchableOpacity>
+                )}
+            />
+        </View>
+    )
 }
 
 export default CategoryPicker

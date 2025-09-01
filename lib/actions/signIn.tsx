@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { SignInSchema } from "../../types/Auth/schema";
 import { supabase } from "../supabase";
+import { useUserStore } from "../../state/store";
 
 export const signInWithEmail = async (
   credentials : z.infer<typeof SignInSchema>
@@ -13,39 +14,50 @@ export const signInWithEmail = async (
        error: validated.error
      }
    } 
+   const { setUser, setLoading, clearUser } = useUserStore.getState();
+
    try {
    
+    setLoading(true);
      const { data, error } = await supabase.auth.signInWithPassword({
        email: validated.data.email,
        password: validated.data.password
      })
-    //  console.log("The user signed in is ",data)
-    if(!error) {
-      // const res = await supabase.auth.getUser()
-      // console.log("The user signed in is ",res)
-
+    
+     if (!error && data.user) {
+      
       const user = data.user
-      // console.log("The user signed in is ",user.id)
+     
       const { data: userData, error: userDataError } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
         .single()
       
-        // console.log("The user signed in is ",userData)
       if (userDataError) {
+        setLoading(false);
         return {
           error: userDataError
         }
       }
+      setUser(userData);
+
       return {
         data: userData,
-        error: error
+        error: null
       }
+    }
+    else {
+      setLoading(false);
+      return {
+        error: error || 'Sign in failed'
+      };
     }
      
    } catch (error) {
     console.log(error)
+    setLoading(false);
+    clearUser();
      return {
        error: error
      }

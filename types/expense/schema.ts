@@ -13,7 +13,7 @@ export const ExpenseSchema = object({
         number({ message: "Please expense amount should be valid number" })
           .nonnegative({ message: "Please expense amount should be positive number" })
     ),
-    date: string(),
-    category: string(),
-    description: string()
+    date: string({message:"Please pick date for this expense"}),
+    category_id: string({message:"Please pick a category for this expense"}),
+    notes: string({message:"Please describe your expense"})
 })

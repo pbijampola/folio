@@ -15,6 +15,8 @@ export default function SignInForm() {
   const [error, setError] = useState<string | null>(null)
   const navigation = useNavigation();
 
+  
+
   type signInFormType = z.infer<typeof SignInSchema>;
   const { control, handleSubmit, formState: { errors } } = useForm<signInFormType>({
       resolver: zodResolver(SignInSchema),
@@ -29,7 +31,7 @@ export default function SignInForm() {
       setLoading(true)
       
       const res = await signInWithEmail(data)
-      console.log("The response after signing is ",res)
+      // console.log("The response after signing is ",res)
       if (res.error) {
         // Handle login error
         setError(

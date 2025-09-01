@@ -4,28 +4,28 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withSequence, withTiming } from 'react-native-reanimated'
 import { useNavigation } from '@react-navigation/native'
 
-const pages = [
-    {
-        text: 'Track your expenses',
-        description: 'All your spends, credit card, savings and other expenses in one place',
-        // image:require('../assets/bill.svg'),
-    },
-    {
-        text: 'Set your budget',
-        description: 'Set your daily, weekly monthly and yearly budgets and track them as you go',
-        // image:require('../assets/bill.svg'),
-    },
-    {
-        text: 'Manage your finances',
-        description: 'Manage your debts and bills easily from one location'
-        // image:require('../assets/bill.svg'),
-    },
-    {
-        text: 'Keep track of your savings',
-        description: 'Set and track your savings goals very easily',
-        // image:require('../assets/bill.svg'),
-    }
-]
+// const pages = [
+//     {
+//         text: 'Track your expenses',
+//         description: 'All your spends, credit card, savings and other expenses in one place',
+//         // image:require('../assets/bill.svg'),
+//     },
+//     {
+//         text: 'Set your budget',
+//         description: 'Set your daily, weekly monthly and yearly budgets and track them as you go',
+//         // image:require('../assets/bill.svg'),
+//     },
+//     {
+//         text: 'Manage your finances',
+//         description: 'Manage your debts and bills easily from one location'
+//         // image:require('../assets/bill.svg'),
+//     },
+//     {
+//         text: 'Keep track of your savings',
+//         description: 'Set and track your savings goals very easily',
+//         // image:require('../assets/bill.svg'),
+//     }
+// ]
 const Welcome = () => {
     const navigation = useNavigation();
 

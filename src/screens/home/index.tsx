@@ -1,13 +1,13 @@
-import { View, Text, TouchableOpacity,FlatList, SafeAreaView } from 'react-native'
-import React, { useState } from 'react'
+import { View, Text, TouchableOpacity,FlatList, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native'
+import React, { startTransition, useEffect, useState } from 'react'
 import { FontAwesome } from '@expo/vector-icons'
 import ModalComponent from '../../components/bottomSheetModal'
 import BalanceCard from '../../components/card/balanceCard'
+import { expensesSummary, ExpenseSummary,} from '../../../lib/actions/expense'
 
-const transactions = [
+const styling = [
   {
-    id: 1,
-    title: "Groceries",
+    category: "Groceries",
     amount: 31400,
     date: "2023-06-01",
     icon: "shopping-basket",
@@ -15,46 +15,36 @@ const transactions = [
     background: "bg-yellow-200",
   },
   {
-    id: 2,
-    title: "Transport",
-    amount: 29500,
-    date: "2023-06-01",
+    
+    category: "Transport",
     icon: "bus",
     iconColor: "blue",
     background: "bg-blue-200",
   },
   {
-    id: 3,
-    title: "Support/Gift",
-    amount: 62000,
-    date: "2023-06-01",
+    
+    category: "Support/Gift",
     icon: "diamond",
     iconColor: "purple",
     background: "bg-purple-200",
   },
   {
-    id: 4,
-    title: "Food",
-    amount: 82550,
-    date: "2023-06-01",
+    
+    category: "Food",
     icon: "cutlery",
     iconColor: "green",
     background: "bg-green-200",
   },
   {
-    id: 5,
-    title: "Utilities",
-    amount: 18000,
-    date: "2023-06-01",
+    
+    category: "Utilities",
     icon: "ticket",
     iconColor: "red",
     background: "bg-red-200",
   },
   {
-    id: 6,
-    title: "Personal Care",
-    amount: 5000,
-    date: "2023-06-01",
+    
+    category: "Personal Care",
     icon: "ticket",
     iconColor: "red",
     background: "bg-red-200",
@@ -63,13 +53,62 @@ const transactions = [
 
 export default function Home() {
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [expenseSummary, setExpenseSummary] = useState<ExpenseSummary>();
+  const [loading, setIsLoading]= useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  
+  useEffect(() => {
+    startTransition(async () => {
+      setIsLoading(true);
+      setRefreshing(true);
+    const loadExpense = async () => {
+        try {
+            setIsLoading(true);
+            const summary = await expensesSummary();
+            console.log("The summary of expenses is",summary.recentExpenses)
+            setExpenseSummary(summary);
+        } catch (error) {
+            console.error('Error fetching expenses:', error);
+            setIsLoading(false);
+        } finally {
+            setIsLoading(false);
+            setRefreshing(false);
+        }
+    };
+    loadExpense();
+    })
+}, []);
+
   const handleOpenModal = () => {
     setIsModalVisible(true);
   }
   const handleCloseModal = () => {
     setIsModalVisible(false);
   }
+
+  const getCategoryStyle = (categoryName: string) => {
+    // Find the style object that matches the category name
+    const style = styling.find(style => style.category === categoryName);
+    
+    // Return a default style if none is found, to avoid errors
+    return style || {
+      category: "Other",
+      icon: "question-circle" as const, // Use 'as const' for FontAwesome icon names
+      iconColor: "gray",
+      background: "bg-gray-200",
+    };
+  };
+
+  if (loading) {
+    return (
+      <View className='flex-1 justify-center items-center'>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    )
+  }
+
   return (
+
     <SafeAreaView className='flex-1 bg-primary'>
 
     <View className="flex flex-col px-4 gap-4">
@@ -85,7 +124,7 @@ export default function Home() {
         </TouchableOpacity>
       </View>
       {/* Recent Expenses */}
-      <BalanceCard />
+      <BalanceCard totalExpenses={expenseSummary?.totalExpenses || 0}  />
       <View className="flex flex-col mt-4 gap-4">
         <View className="flex flex-row justify-between">
          <Text className="text-[18px] leading-[22px] font-normal text-[#222223]"> Recent Expenses</Text>
@@ -99,24 +138,42 @@ export default function Home() {
           <FontAwesome name={isModalVisible ? "close" : "plus"} size={16} color="black"/>
         </TouchableOpacity>
         <FlatList
-          data={transactions}
-          renderItem={({ item }) => (
-            <View className="bg-[#FFFFFF] p-4 mb-2 rounded-[12px]  ">
-              <View className="flex flex-row justify-between items-center">
-               <View className="flex flex-row items-center gap-2">
-                <FontAwesome name={item.icon} size={20} color={item.iconColor} className={`p-4 ${item.background} rounded-[16px]`} />
-               <View className="flex flex-col">
-                  <Text className="text-[16px] leading-[22px] font-medium text-[rgb(33,33,33)]">{item.title}</Text>
-                  <Text className="text-[12px] leading-[22px] font-normal text-[rgb(61,61,78)]">{item.date}</Text>
-                </View>
-               </View>
-                <Text className="text-[18px] leading-[22px] font-[600px] text-[rgb(61,61,78)]">{item.amount}</Text>
-              </View>
+  data={expenseSummary?.recentExpenses || []}
+  renderItem={({ item }) => {
+    // Get the style for this expense's category
+    const categoryStyle = getCategoryStyle(item.categories.name);
+    
+    return (
+      <View className="bg-[#FFFFFF] p-4 mb-2 rounded-[12px]  ">
+        <View className="flex flex-row justify-between items-center">
+          <View className="flex flex-row items-center gap-2">
+            {/* Apply the dynamic styles here */}
+            <View className={`p-3 ${categoryStyle.background} rounded-[16px]`}>
+              <FontAwesome 
+                name={categoryStyle.icon} 
+                size={20} 
+                color={categoryStyle.iconColor} 
+              />
             </View>
-          )}
-          keyExtractor={(item) => item.id.toString()}
-          // className="flex-1"
-        />
+            <View className="flex flex-col">
+              <Text className="text-[16px] leading-[22px] font-medium text-[rgb(33,33,33)]">
+                {item.title || ''}
+              </Text>
+              <Text className="text-[12px] leading-[22px] font-normal text-[rgb(61,61,78)]">
+                {item.date || ''}
+              </Text>
+            </View>
+          </View>
+          <Text className="text-[18px] leading-[22px] font-[600px] text-[rgb(61,61,78)]">
+            {Intl.NumberFormat().format(item.amount || 0)}
+          </Text>
+        </View>
+      </View>
+    );
+  }}
+  keyExtractor={(item) => item.id}
+  refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { console.log('refreshing') }} />}
+/>
       </View>
     </View>
     <ModalComponent
