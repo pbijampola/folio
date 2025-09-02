@@ -1,3 +1,5 @@
+import { Category } from "../categories/type";
+
 export interface Expenses{
     data:ExpenseData[],
 } 
@@ -15,10 +17,16 @@ export type ExpenseData = {
     attachment: string | null;
     created_at: string;
     updated_at: string;
+    categories:Category
   };
 
-  export type ExpenseResponse = {
-    data: ExpenseData | null;
-    error: string | null;
-    success: boolean;
-  };
+  export type ExpenseSummary = {
+    totalExpenses: number;
+    recentExpenses: ExpenseData[]; 
+}
+
+export type ExpenseResponse = {
+  data: ExpenseData | null;
+  error: string | null;
+  success: boolean;
+};

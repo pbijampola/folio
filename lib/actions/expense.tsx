@@ -2,12 +2,9 @@ import z from "zod";
 import { ExpenseSchema } from "../../types/expense/schema";
 import { supabase } from "../supabase";
 import { useUserStore } from "../../state/store";
-    import { ExpenseData, ExpenseResponse, Expenses } from "../../types/expense/type";
+    import { ExpenseData, ExpenseResponse, Expenses, ExpenseSummary } from "../../types/expense/type";
 
-export type ExpenseSummary = {
-    totalExpenses: number;
-    recentExpenses: Expenses[];
-}
+
 
 
 export async function expensesSummary(filterDate?: string): Promise<ExpenseSummary> {
@@ -119,13 +116,21 @@ export async function CreateExpense(
 }
 
 
-export const getAllExpense = async ():Promise<Expenses[]> => {
-    
-    const { data, error } = await supabase.from('expenses').select('*').order('created_at', { ascending: false })
-    console.log("The list of expenses are ",data)
-    if (error) {
-        
-        throw error
-    }
-    return data
-}
+
+
+export const getAllExpense = async (): Promise<ExpenseData[]> => {
+  const { user } = useUserStore.getState();
+
+  const { data, error } = await supabase
+    .from('expenses')
+    .select('*, categories(name)') 
+    .order('created_at', { ascending: false })
+    .eq("user_id", user?.id);
+
+  if (error) {
+    console.error("Error fetching all expenses", error.message);
+    throw error;
+  }
+
+  return data || [];
+};

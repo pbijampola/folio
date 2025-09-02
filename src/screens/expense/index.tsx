@@ -1,35 +1,71 @@
-
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   View, 
   Text, 
-  StyleSheet, 
-  FlatList, 
   TouchableOpacity, 
   Alert, 
   ScrollView,
-  SafeAreaView
+  SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { format } from 'date-fns';
 import ModalComponent from '../../components/bottomSheetModal';
+import { getAllExpense } from '../../../lib/actions/expense'; 
+import ExpensesList from '../../components/widgets/expenseList';
+import { ExpenseData } from '../../../types/expense/type';
 
-const ExpensesScreen = ({ expenses, categories, deleteExpense, updateExpense, navigation }) => {
-  const [filter, setFilter] = useState('all'); // 'all', 'today', 'week', 'month'
+interface ExpensesScreenProps {
+  deleteExpense?: (id: string) => void;
+  updateExpense?: (expense: ExpenseData) => void;
+  navigation: any;
+}
 
+const ExpensesScreen: React.FC<ExpensesScreenProps> = ({ 
+  deleteExpense, 
+  updateExpense, 
+  navigation 
+}) => {
+  const [filter, setFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [expenses, setExpenses] = useState<ExpenseData[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
   const handleOpenModal = () => {
     setIsModalVisible(true);
-  }
-  const handleCloseModal = () => {
-    setIsModalVisible(false);
-  }
-  
-  const getCategoryById = (id) => {
-    return categories.find(category => category.id === id) || { name: 'Uncategorized', color: '#999', icon: 'help-circle-outline' };
   };
 
-  const filteredExpenses = () => {
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+  };
+
+  const loadExpenses = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+     
+      const data = await getAllExpense();
+      console.log("The List all of expenses is", data);
+      
+      setExpenses(data || []);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      Alert.alert('Error', 'Failed to load expenses. Please try again.');
+      setExpenses([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadExpenses();
+  }, [loadExpenses]);
+
+  const filteredExpenses = useCallback(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const oneWeekAgo = new Date(today);
@@ -56,191 +92,137 @@ const ExpensesScreen = ({ expenses, categories, deleteExpense, updateExpense, na
       default:
         return expenses;
     }
-  };
+  }, [expenses, filter]);
 
-  const confirmDelete = (id) => {
+  const confirmDelete = (expense: ExpenseData) => {
     Alert.alert(
       "Delete Expense",
       "Are you sure you want to delete this expense?",
       [
         { text: "Cancel", style: "cancel" },
-        { text: "Delete", style: "destructive", onPress: () => deleteExpense(id) }
+        { 
+          text: "Delete", 
+          style: "destructive", 
+          onPress: () => {
+            if (deleteExpense) {
+              deleteExpense(expense.id);
+            }
+            // Remove from local state immediately for better UX
+            setExpenses(prev => prev.filter(e => e.id !== expense.id));
+          }
+        }
       ]
     );
   };
 
-  const renderExpenseItem = ({ item }) => {
-    const category = getCategoryById(item.categoryId);
-    return (
-      <TouchableOpacity 
-        style={styles.expenseItem}
-        onPress={() => navigation.navigate('Edit', { expense: item })}
-        onLongPress={() => confirmDelete(item.id)}
-      >
-        <View style={[styles.categoryIcon, { backgroundColor: category.color }]}>
-          <Ionicons name={category.icon} size={24} color="#fff" />
-        </View>
-        <View style={styles.expenseDetails}>
-          <Text style={styles.expenseTitle}>{item.title}</Text>
-          <Text style={styles.expenseDate}>
-            {format(new Date(item.date), 'dd/MM/yyyy')}
-          </Text>
-          {item.notes ? (
-            <Text style={styles.expenseNotes} numberOfLines={1}>
-              {item.notes}
-            </Text>
-          ) : null}
-        </View>
-        <View style={styles.amountContainer}>
-          <Text style={styles.expenseAmount}>/= {item.amount.toLocaleString()}</Text>
-        </View>
-      </TouchableOpacity>
-    );
+  const handleExpensePress = (expense: ExpenseData) => {
+    navigation.navigate('Edit', { expense });
   };
+
+  const handleExpenseLongPress = (expense: ExpenseData) => {
+    confirmDelete(expense);
+  };
+
+  const sortedFilteredExpenses = filteredExpenses().sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  const FilterButton: React.FC<{
+    title: string;
+    filterValue: typeof filter;
+    isActive: boolean;
+    onPress: () => void;
+  }> = ({ title, isActive, onPress }) => (
+    <TouchableOpacity 
+      className={`py-2 px-4 rounded-full mr-2 ${
+        isActive ? 'bg-green-500' : 'bg-gray-200'
+      }`}
+      onPress={onPress}
+    >
+      <Text className={`text-sm ${
+        isActive ? 'text-white font-bold' : 'text-gray-600'
+      }`}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const EmptyExpensesComponent = () => (
+    <View className='flex-1 items-center justify-center p-4'>
+      <Ionicons name="receipt-outline" size={80} color="#ccc" />
+      <Text className='text-[16px] leading-7 font-bold text-secondary mt-4 mb-6'>
+        No expenses found
+      </Text>
+      <TouchableOpacity 
+        className='p-4 bg-tertiary items-center rounded-[24px] px-6 py-4'
+        onPress={handleOpenModal}
+      >
+        <Text className='text-[16px] leading-7 font-bold text-primary'>
+          Add New Expense
+        </Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (loading) {
+    return (
+      <View className='flex-1 justify-center items-center'>
+        <ActivityIndicator size="large" color="#0000ff" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView className='flex-1 bg-primary'>
+      {/* Filter Buttons */}
       <View className='flex flex-row justify-between p-3 bg-secondary border-b border-gray-200 items-center rounded-full'>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity 
-            style={[styles.filterButton, filter === 'all' && styles.activeFilterButton]}
+          <FilterButton
+            title="All"
+            filterValue="all"
+            isActive={filter === 'all'}
             onPress={() => setFilter('all')}
-          >
-            <Text style={[styles.filterText, filter === 'all' && styles.activeFilterText]}>
-              All
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterButton, filter === 'today' && styles.activeFilterButton]}
+          />
+          <FilterButton
+            title="Today"
+            filterValue="today"
+            isActive={filter === 'today'}
             onPress={() => setFilter('today')}
-          >
-            <Text style={[styles.filterText, filter === 'today' && styles.activeFilterText]}>
-              Today
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterButton, filter === 'week' && styles.activeFilterButton]}
+          />
+          <FilterButton
+            title="This Week"
+            filterValue="week"
+            isActive={filter === 'week'}
             onPress={() => setFilter('week')}
-          >
-            <Text style={[styles.filterText, filter === 'week' && styles.activeFilterText]}>
-              This Week
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterButton, filter === 'month' && styles.activeFilterButton]}
+          />
+          <FilterButton
+            title="This Month"
+            filterValue="month"
+            isActive={filter === 'month'}
             onPress={() => setFilter('month')}
-          >
-            <Text style={[styles.filterText, filter === 'month' && styles.activeFilterText]}>
-              This Month
-            </Text>
-          </TouchableOpacity>
+          />
         </ScrollView>
       </View>
 
-      {filteredExpenses()?.length > 0 ? (
-        <FlatList
-          data={filteredExpenses().sort((a, b) => new Date(b.date) - new Date(a.date))}
-          renderItem={renderExpenseItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.listContainer}
+      {/* Expenses List */}
+      <View className="flex-1 p-4">
+        <ExpensesList
+          transactions={sortedFilteredExpenses}
+          refreshing={refreshing}
+          onRefresh={() => loadExpenses(true)}
+          onItemPress={handleExpensePress}
+          emptyMessage={`No expenses found for ${filter === 'all' ? 'any period' : filter}`}
+          currencySymbol="/= "
+          showRefreshControl={true}
         />
-      ) : (
-        <View className='flex-1 items-center justify-center p-4'>
-          <Ionicons name="receipt-outline" size={80} color="#ccc" />
-          <Text className='text-[16px] leading-7 font-bold text-secondary mt-4 mb-6'>No expenses found</Text>
-          <TouchableOpacity 
-            className='p-4 bg-tertiary items-center rounded-[24px] px-6 py-4'
-            onPress={handleOpenModal}
-          >
-            <Text className='text-[16px] leading-7 font-bold text-primary'>Add New Expense</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+      </View>
 
-<ModalComponent
-    isVisible={isModalVisible}
-    onClose={handleCloseModal} 
-    />
+      <ModalComponent
+        isVisible={isModalVisible}
+        onClose={handleCloseModal} 
+      />
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
- 
-  filterButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    marginRight: 8,
-    backgroundColor: '#f0f0f0',
-  },
-  activeFilterButton: {
-    backgroundColor: '#4EA65A',
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#666',
-  },
-  activeFilterText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  listContainer: {
-    padding: 16,
-  },
-  expenseItem: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    marginBottom: 12,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  expenseDetails: {
-    flex: 1,
-  },
-  expenseTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  expenseDate: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  expenseNotes: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
-  },
-  amountContainer: {
-    justifyContent: 'center',
-  },
-  expenseAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-  },
- 
-
-  addButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-});
 
 export default ExpensesScreen;
